@@ -1,10 +1,13 @@
-const { calculateBMR, getActivityFactor, calculateTDEE } = require('./logic/metabolicEngine');
+const metabolic = require('./logic/metabolicEngine');
+const velocity = require('./logic/velocityEngine');
 
-const bmr = calculateBMR(80, 180, 30, true);
-const factor = getActivityFactor(12000);
-const tdee = calculateTDEE(bmr, factor);
+const tdee = 2500;
+const calIn = 2000;
+const deficitHebdo = (calIn - tdee) * 7;
 
-console.log("---------------- PulsePath Test ----------------");
-console.log(`Mon TDEE aujourd'hui : ${tdee.toFixed(2)} kcal`);
-console.log("------------------------------------------------");
+const dateEstimee = velocity.projectTargetDate(85, 80, deficitHebdo);
+
+console.log("--- PulsePath Engine NodeJS ---");
+console.log(`Date cible estimée : ${dateEstimee ? dateEstimee.toLocaleDateString() : "Calcul impossible (Surplus)"}`);
+
 
