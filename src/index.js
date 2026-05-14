@@ -18,12 +18,26 @@ async function startEngine() {
     let continuer = true;
     while (continuer) {
         console.log("\n--- Nouvelle saisie quotidienne ---");
-        
+
         const poids = parseFloat(await ask("Poids actuel (kg) : "));
         const calIn = parseInt(await ask("Calories consommées (kcal) : "));
         const pas = parseInt(await ask("Nombre de pas : "));
         const sommeil = parseFloat(await ask("Heures de sommeil : "));
+        const proteines = parseInt(await ask("Protéines consommées (g) [0 si inconnu] : "));
+        const jeuneReponse = await ask("Objectif de jeûne atteint ? (o/n) : ");
+        const jeuneValide = jeuneReponse.toLowerCase() === 'o';
 
+        const logDuJour = {
+            weight: poids,
+            caloriesIn: calIn,
+            steps: pas,
+            sleepHours: sommeil,
+            proteinsIn: proteines,
+            fastingValidated: jeuneValide
+        };
+
+        // Calcul du score d'intégrité
+        const scoreIntegrite = insightEngine.calculateIntegrityScore(logDuJour);
         // 1. Calculs Métaboliques
         const bmr = metabolic.calculateBMR(poids, 180, 30, true);
         const factor = metabolic.getActivityFactor(pas);
@@ -37,7 +51,7 @@ async function startEngine() {
         // 3. Affichage des résultats
         console.log("\n--- RÉSULTATS DU MOTEUR ---");
         console.log(`TDEE : ${Math.round(tdee)} kcal | Bilan Net : ${calIn - Math.round(tdee)} kcal`);
-        
+
         if (!dateEstimee) {
             console.log("Trajectoire : En surplus (Calcul impossible)");
         } else {
@@ -47,6 +61,13 @@ async function startEngine() {
         // 4. Génération des Insights (Coaching)
         console.log("\n--- COACHING & INSIGHTS ---");
         console.log(insightEngine.getSleepInsight(sommeil));
+        console.log(`📊 SCORE D'INTÉGRITÉ DE LA DONNÉE : ${scoreIntegrite}%`);
+
+        if (scoreIntegrite === 100) {
+            console.log("🏆 FÉLICITATIONS : Badge 'Intégrité' débloqué ! Vos prédictions sont fiables à 95%.");
+        } else {
+            console.log("ℹ️ INFO : Log incomplet. La fiabilité de l'estimation de la trajectoire est réduite.");
+        }
 
         const reponse = await ask("\nAjouter une autre journée ? (o/n) : ");
         continuer = reponse.toLowerCase() === 'o';

@@ -17,4 +17,23 @@ const getProteinInsight = (proteins, weight) => {
     return "✅ INFO : Apport protéique suffisant pour protéger vos muscles.";
 };
 
-module.exports = { getSleepInsight, getProteinInsight };
+/**
+ * Règle RM-GAM-01 : Calcul du Score d'Intégrité
+ */
+const calculateIntegrityScore = (log) => {
+    let score = 0;
+
+    // Poids et Calories (50%)
+    if (log.weight > 0 && log.caloriesIn > 0) score += 50;
+
+    // Pas et Sommeil (30%)
+    if (log.steps > 0 && log.sleepHours > 0) score += 30;
+
+    // Protéines et Jeûne (20% - 10% chacun)
+    if (log.proteinsIn > 0) score += 10;
+    if (log.fastingValidated) score += 10;
+
+    return score;
+};
+
+module.exports = { getSleepInsight, getProteinInsight, calculateIntegrityScore };
