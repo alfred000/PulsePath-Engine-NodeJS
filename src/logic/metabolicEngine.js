@@ -19,4 +19,35 @@ const calculateTDEE = (bmr, activityFactor) => {
     return bmr * activityFactor;
 };
 
-module.exports = { calculateBMR, getActivityFactor, calculateTDEE };
+const calculateIMC = (weight, heightCm) => {
+    const heightMeters = heightCm / 100;
+    return weight / (heightMeters * heightMeters);
+};
+
+const getWeightPlage = (heightCm) => {
+    const heightMeters = heightCm / 100;
+    return {
+        poidsMin: 18.5 * (heightMeters * heightMeters),
+        poidsMax: 25.0 * (heightMeters * heightMeters)
+    };
+};
+
+const calculateIMG = (imc, age, isMale) => {
+    const genderFactor = isMale ? 1 : 0;
+    return (1.20 * imc) + (0.23 * age) - (10.8 * genderFactor) - 5.4;
+};
+
+const calculateMacros = (targetCalories, objective) => {
+    let pPro = 0.25, pGlu = 0.45, pLip = 0.30;
+    if (objective === "perte") { pPro = 0.30; pGlu = 0.40; pLip = 0.30; }
+    else if (objective === "gain") { pPro = 0.25; pGlu = 0.50; pLip = 0.25; }
+
+    return {
+        proteins: Math.round((targetCalories * pPro) / 4),
+        carbs: Math.round((targetCalories * pGlu) / 4),
+        fats: Math.round((targetCalories * pLip) / 9)
+    };
+};
+
+module.exports = { calculateBMR, calculateIMC, getWeightPlage, calculateIMG, calculateMacros, getActivityFactor, calculateTDEE  };
+
