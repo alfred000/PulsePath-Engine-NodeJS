@@ -49,5 +49,32 @@ const calculateMacros = (targetCalories, objective) => {
     };
 };
 
-module.exports = { calculateBMR, calculateIMC, getWeightPlage, calculateIMG, calculateMacros, getActivityFactor, calculateTDEE  };
+const getImcInterpretation = (heightCm, imc) => {
+    const heightMeters = heightCm / 100;
+    const poidsMin = 18.5 * (heightMeters * heightMeters);
+    const poidsMax = 25.0 * (heightMeters * heightMeters);
+    
+    let categorie = "Normal";
+    if (imc < 18.5) categorie = "Maigreur";
+    else if (imc >= 25.0 && imc < 30.0) categorie = "Surpoids";
+    else if (imc >= 30.0) categorie = "Obésité";
+
+    return { categorie, poidsMin, poidsMax };
+};
+
+
+const getInitialActivityFactor = (choix) => {
+    const factors = { 1: 1.2, 2: 1.375, 3: 1.55, 4: 1.725 };
+    return factors[choix] || 1.2;
+};
+
+const calculateCaloriesBurned = (tdee, bmr) => tdee - bmr;
+
+module.exports = { 
+    calculateBMR, calculateIMC, getImcInterpretation, calculateIMG, 
+    getInitialActivityFactor, getActivityFactor, calculateCaloriesBurned, calculateMacros 
+};
+
+
+module.exports = { getImcInterpretation, getInitialActivityFactor, calculateCaloriesBurned, calculateBMR, calculateIMC, getWeightPlage, calculateIMG, calculateMacros, getActivityFactor, calculateTDEE  };
 

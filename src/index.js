@@ -12,11 +12,14 @@ const rl = readline.createInterface({
 const ask = (question) => new Promise((resolve) => rl.question(question, resolve));
 
 async function runPulsePath() {
+    const dateFixationObjectif = new Date();
+    dateFixationObjectif.setDate(dateFixationObjectif.getDate() - 5); // Simule 5 jours passés
+
     console.log("=================================================");
     console.log("⚡   BIENVENUE SUR PULSEPATH ENGINE (NODE.JS)   ⚡");
     console.log("=================================================");
 
-    // --- ÉTAPE 1 : ONBOARDING & DIAGNOSTIC ---
+    // --- ÉTAPE 1 : DIAGNOSTIC ---
     console.log("\n[1/3] DIAGNOSTIC DE DÉPART");
     const genreInput = await ask("Genre (h/f) : ");
     const isMale = genreInput.toLowerCase() === 'h';
@@ -24,38 +27,41 @@ async function runPulsePath() {
     const tailleCm = parseFloat(await ask("Votre Taille (cm) : "));
     const poidsDepart = parseFloat(await ask("Poids de départ (kg) : "));
 
+    console.log("\nNiveau d'activité physique :");
+    console.log("1. Sédentaire | 2. Activité légère | 3. Activité modérée | 4. Activité élevée");
+    const choixActivite = parseInt(await ask("Votre choix (1-4) : "));
+
     const bmrInitial = metabolic.calculateBMR(poidsDepart, tailleCm, age, isMale);
     const imcInitial = metabolic.calculateIMC(poidsDepart, tailleCm);
     const imgInitial = metabolic.calculateIMG(imcInitial, age, isMale);
-    const { poidsMin, poidsMax } = metabolic.getWeightPlage(tailleCm);
+    const { categorie, poidsMin, poidsMax } = metabolic.getImcInterpretation(tailleCm, imcInitial);
+    const facteurInitial = metabolic.getInitialActivityFactor(choixActivite);
+    const tdeeInitial = bmrInitial * facteurInitial;
 
-    console.log("\n------------------- VOS MÉTRIQUES -------------------");
-    console.log(`📊 IMC : ${imcInitial.toFixed(1)}`);
+    console.log("\n------------------- DIAGNOSTIC INITIAL -------------------");
+    console.log(`📊 Catégorie IMC : ${categorie} (${imcInitial.toFixed(1)})`);
     console.log(`🧬 IMG (Masse Grasse) : ${imgInitial.toFixed(1)}%`);
     console.log(`⚖️ Plage bien-être conseillée : ${poidsMin.toFixed(1)} kg - ${poidsMax.toFixed(1)} kg`);
-    console.log(`🍏 BMR initial : ${Math.round(bmrInitial)} kcal`);
+    console.log(`🍏 Maintenance de départ : ${Math.round(tdeeInitial)} kcal`);
 
-    // --- ÉTAPE 2 : PLANIFICATION S.M.A.R.T ---
+    // --- ÉTAPE 2 : PLANIFICATION ---
     console.log("\n[2/3] PLANIFICATION DE L'OBJECTIF S.M.A.R.T");
-    const objective = await ask("Choisissez votre objectif (perte / maintien / gain) : ");
+    const objective = await ask("Objectif (perte / seche / maintien / gain) : ");
     const poidsCible = parseFloat(await ask("Entrez votre poids cible (kg) : "));
+    const seancesPrevues = parseInt(await ask("Nombre de séances de sport par semaine : "));
 
-    if (objective.toLowerCase() === 'perte' && poidsCible < poidsMin) {
-        console.log(`⚠️ ATTENTION : Cible agressive inférieure au poids bien-être (${poidsMin.toFixed(1)} kg).`);
-    }
-
-    const tdeeInitial = bmrInitial * 1.4;
     let budgetCaloriesCible = tdeeInitial;
-    if (objective.toLowerCase() === 'perte') budgetCaloriesCible -= 500;
-    else if (objective.toLowerCase() === 'gain') budgetCaloriesCible += 300;
+    if (objective === 'perte' || objective === 'seche') budgetCaloriesCible -= 500;
+    else if (objective === 'gain') budgetCaloriesCible += 300;
 
     const { proteins, carbs, fats } = metabolic.calculateMacros(budgetCaloriesCible, objective);
 
-    console.log("\n------------------- VOTRE PLANNING -------------------");
-    console.log(`🎯 Budget Énergétique Ciblé : ${Math.round(budgetCaloriesCible)} Calories / jour`);
+    console.log("\n------------------- VOTRE PLANNING VALIDÉ -------------------");
+    console.log(`🎯 Calories programmées : ${Math.round(budgetCaloriesCible)} kcal / jour`);
     console.log(`🧬 Ratio Macros : P: ${proteins}g | G: ${carbs}g | L: ${fats}g`);
+    console.log(`🏋️ Objectif Sport : ${seancesPrevues} séances / semaine`);
 
-    // --- ÉTAPE 3 : JOURNALISATION (DAILY LOG) ---
+    // --- ÉTAPE 3 : JOURNALISATION ---
     console.log("\n[3/3] JOURNAL DE BORD QUOTIDIEN");
 
     let continuer = true;
@@ -66,6 +72,7 @@ async function runPulsePath() {
         const pas = parseInt(await ask("Nombre de pas : "));
         const sommeil = parseFloat(await ask("Heures de sommeil : "));
         const proteinesSaisie = parseInt(await ask("Protéines consommées (g) : "));
+        const sportAujourdhui = parseInt(await ask("Séance de sport validée aujourd'hui ? (1 pour oui / 0 pour non) : "));
         const jeuneReponse = await ask("Objectif de jeûne atteint ? (o/n) : ");
         const jeuneValide = jeuneReponse.toLowerCase() === 'o';
 
@@ -75,12 +82,8 @@ async function runPulsePath() {
         const calBrulees = tdeeDuJour - bmrDuJour;
 
         const logDuJour = {
-            weight: poids,
-            caloriesIn: calIn,
-            steps: pas,
-            sleepHours: sommeil,
-            proteinsIn: proteinesSaisie,
-            fastingValidated: jeuneValide
+            weight: poids, caloriesIn: calIn, steps: pas, sleepHours: sommeil,
+            proteinsIn: proteinesSaisie, workoutsDone: sportAujourdhui, fastingValidated: jeuneValide
         };
 
         logService.addLog(logDuJour);
@@ -88,24 +91,38 @@ async function runPulsePath() {
         const dateEstimee = velocity.projectTargetDate(poids, poidsCible, deficitHebdo);
         const scoreIntegrite = insightEngine.calculateIntegrityScore(logDuJour);
 
+        // Calcul des KPIs d'évolution
+        const diffTemps = Math.abs(new Date() - dateFixationObjectif);
+        const joursEcoules = Math.floor(diffTemps / (1000 * 60 * 60 * 24)) + 1;
+        let perteTotaleKg = 0;
+        let progresPourcent = 0;
+
+        if (objective === 'perte' || objective === 'seche') {
+            if (poids < poidsDepart) {
+                perteTotaleKg = poidsDepart - poids;
+                progresPourcent = (perteTotaleKg / (poidsDepart - poidsCible)) * 100;
+                if (progresPourcent > 100) progresPourcent = 100;
+            }
+        }
+
+        const totalSeancesSport = logService.getAllLogs().reduce((acc, l) => acc + l.workoutsDone, 0);
+
         console.log("\n=================== DASHBOARD DU JOUR ===================");
-        console.log(`🔥 TDEE du jour : ${Math.round(tdeeDuJour)} kcal`);
-        console.log(`🏃 Activité : +${Math.round(calBrulees)} kcal brûlées`);
-        console.log(`⚖️ Balance Net : ${calIn - Math.round(tdeeDuJour)} kcal`);
-        console.log(`⏱️ Échéance estimée : ${dateEstimee ? dateEstimee.toLocaleDateString() : "Surplus / Impossible à projeter"}`);
+        console.log(`⏱️ Jours cumulés depuis le début : ${joursEcoules} jours`);
+        console.log(`📉 Évolution : -${perteTotaleKg.toFixed(1)} kg | 📈 Progrès : ${progresPourcent.toFixed(1)}%`);
+        console.log(`🔥 TDEE du jour : ${Math.round(tdeeDuJour)} kcal | 跑 Activité : +${Math.round(calBrulees)} kcal`);
+        console.log(`🏋️ Planning Sport : ${totalSeancesSport} / ${seancesPrevues} séances effectuées`);
+        console.log(`⚖️ Balance Calorique Net : ${calIn - Math.round(tdeeDuJour)} kcal`);
+        console.log(`⏱️ Échéance révisée : ${dateEstimee ? dateEstimee.toLocaleDateString() : "Échéance gelée (Surplus)"}`);
 
         console.log("\n--- COACHING & INSIGHTS ---");
         console.log(insightEngine.getSleepInsight(sommeil));
-        console.log(insightEngine.getProteinInsight(proteinesSaisie, poids));
-        console.log(`📊 Qualité des données (Intégrité) : ${scoreIntegrite}%`);
-        if (scoreIntegrite === 100) console.log("🏆 Badge 'Intégrité' obtenu ! Vos prédictions sont hautement fiables.");
+        console.log(`📊 Intégrité de la donnée : ${scoreIntegrite}%`);
 
         const reponse = await ask("\nAjouter une autre journée ? (o/n) : ");
         continuer = reponse.toLowerCase() === 'o';
     }
-    console.log("\nFermeture de l'application.");
     rl.close();
 }
 
 runPulsePath();
-
