@@ -46,7 +46,7 @@ async function runPulsePath() {
             fastingValidated: (await ask("Objectif de jeûne atteint ? (o/n) : ")).toLowerCase() === 'o'
         };
 
-        const result = orchestrator.processDailyLog(logDuJour);
+        const result = await orchestrator.processDailyLog(logDuJour);
 
         // === RESTITUTION DU DASHBOARD CONSOLE ===
         console.log("\n=================== [BLOC 1] DASHBOARD DU JOUR ===================");

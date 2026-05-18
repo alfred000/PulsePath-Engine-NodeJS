@@ -10,15 +10,15 @@ class PulsePathOrchestrator {
         this.dateFixationObjectif = dateFixation;
     }
 
-    processDailyLog(log) {
-        logService.addLog(log);
+    async processDailyLog(log) {
+        await logService.addLog(log);
 
         const bmrDuJour = metabolic.calculateBMR(log.weight, this.profile.tailleCm, this.profile.age, this.profile.isMale);
         const factor = metabolic.getActivityFactor(log.steps);
         const tdeeDuJour = metabolic.calculateTDEE(bmrDuJour, factor);
         const caloriesBruleesActivite = tdeeDuJour - bmrDuJour;
 
-        const deficitHebdoReel = logService.getAverageWeeklyDeficit(tdeeDuJour);
+        const deficitHebdoReel = await logService.getAverageWeeklyDeficit(tdeeDuJour);
         const dateEstimee = velocity.projectTargetDate(log.weight, this.profile.poidsCible, deficitHebdoReel);
 
         const diffTemps = Math.abs(new Date() - this.profile.dateFixationObjectif);
@@ -35,7 +35,7 @@ class PulsePathOrchestrator {
             }
         }
 
-        const totalSeancesCetteSemaine = logService.getAllLogs().reduce((acc, l) => acc + l.workoutsDone, 0);
+        const totalSeancesCetteSemaine = await logService.getAllLogs().reduce((acc, l) => acc + l.workoutsDone, 0);
         const scoreIntegrite = insightEngine.calculateIntegrityScore(log);
 
         let joursRetard = 0;
