@@ -1,4 +1,4 @@
-# PulsePath Engine - Moteur Logique & API REST (Node.js) 🚀
+# PulsePath Engine - Moteur Logique & API REST 🚀
 
 Bienvenue sur le dépôt Back-End JavaScript de **PulsePath Engine**, un système expert prescriptif d'aide à la décision métabolique. Ce moteur calcule, ajuste et corrige dynamiquement les trajectoires énergétiques des utilisateurs sous contraintes physiologiques strictes.
 
