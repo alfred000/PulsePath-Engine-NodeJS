@@ -1,4 +1,4 @@
-const courseCorrection = require('./courseCorrectionEngine');
+const courseCorrection = require('../logic/courseCorrectionEngine');
 
 describe('⚡ Tests Unitaires PulsePath Engine - Validation des Règles Métier', () => {
 
