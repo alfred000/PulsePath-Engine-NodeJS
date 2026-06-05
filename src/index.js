@@ -3,6 +3,9 @@ require('dotenv').config(); // Charge les variables d'environnement du fichier .
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./docs/swaggerSpec');
 const controller = require('./controllers/pulsePathController');
+const goalController = require('./controllers/goalController');
+const profileController = require('./controllers/profileController');
+const goalController = require('./controllers/goalController');
 
 // Importations des nouvelles briques de sécurité (US-06)
 const authController = require('./controllers/authController');
@@ -29,6 +32,19 @@ app.post('/api/auth/login', authController.login);
 // La récupération de l'historique et la saisie du journal sont maintenant protégées par le JWT Guard
 app.get('/api/pulsepath/history', authenticateToken, controller.getHistory);
 app.post('/api/pulsepath/log', authenticateToken, controller.submitDailyLog);
+
+// Déclaration de la route d'évaluation S.M.A.R.T sécurisée (US-03)
+app.post('/api/goals/evaluate', authenticateToken, goalController.evaluateUserGoal);
+
+// US-01 : Routes d'authentification publiques
+app.post('/api/auth/register', authController.register);
+app.post('/api/auth/login', authController.login);
+
+// 🔥 US-02 : Route d'Onboarding du Profil Métabolique protégée par JWT
+app.post('/api/profile', authenticateToken, profileController.upsertProfile);
+
+// US-03 : Route d'Évaluation d'Objectifs S.M.A.R.T protégée par JWT
+app.post('/api/goals/evaluate', authenticateToken, goalController.evaluateUserGoal);
 
 // Activation systématique de l'interface de documentation Swagger
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
